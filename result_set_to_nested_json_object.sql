@@ -1,6 +1,11 @@
 
+
+SELECT get_freelancer_info('9999999','2022-01-26','2022-03-31');
+
+-- DROP FUNCTION IF EXISTS get_freelancer_info; alter function get_freelancer_info() ...
+
 DELIMITER $$   
-CREATE FUNCTION get_freelancer_info(phone_number VARCHAR(15),start_date DATE, end_date DATE) 
+CREATE  FUNCTION get_freelancer_info(phone_number VARCHAR(15),start_date DATE, end_date DATE) 
 RETURNS JSON 
 DETERMINISTIC 
 BEGIN 
@@ -32,7 +37,25 @@ BEGIN
             FROM tbl_order_request o
             LEFT JOIN tbl_rate_review r ON o.id = r.order_request_id
             WHERE o.provider_id = f.id AND date BETWEEN start_date AND end_date
-            )
+            ),
+		  'job_details',
+		  		(SELECT  json_arrayagg(json_object(
+						   'job_id', o.id,
+						   'customer_name',u.NAME,
+						       'job_start_date',o.DATE,
+						       'job_end_date',date(COALESCE(job_end_time,o.DATE)),
+						       'job_status',o.STATUS,
+						       'rating',COALESCE(ROUND(((r.rate+r.time_rate+r.price_rate)/3)),'no rating'),
+						       'review',COALESCE(r.review,'no review'),
+							 	'earning',provider_earning
+						         )) 
+									FROM tbl_order_request o
+									INNER JOIN tbl_user u
+									ON u.id = o.user_id
+									LEFT JOIN tbl_rate_review r ON o.id = r.order_request_id
+									WHERE o.provider_id = f.id
+									AND o.date BETWEEN start_date AND end_date
+  	  		  )
     ) INTO freelancer_info
     FROM tbl_user f
     INNER JOIN tbl_bank b ON f.id = b.provider_id
