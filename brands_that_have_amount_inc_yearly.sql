@@ -1,3 +1,5 @@
+
+
 -- Table
 CREATE TABLE brands (
   year_v INT,
